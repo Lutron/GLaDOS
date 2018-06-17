@@ -28,7 +28,7 @@ window.consolecontent="GLaDOS v1.09 (c) 1982 Aperture Science, Inc<br>\
 window.consoleurl="<br>Lutan@GLaDOS:~$ ";
 window.commandhistory=[""];
 window.currentcommand=0;
-$(function() {
+whenbooted = function() {
 	$(document).click(function() {
 		$("#userinputworkaround").focus()
 	});
@@ -61,11 +61,11 @@ $(function() {
 				e.stopPropagation();
 				oneCommandForward();
 			}
-			updateConsole();
+			updateConsole(true);
 		},50);
 	});
 	updateConsole();
-});
+}
 
 function oneCommandBack() {
 	window.currentcommand = window.currentcommand > 0 ? window.currentcommand - 1 : 0;
@@ -98,7 +98,7 @@ function cc() {	//close console
 	updateConsole();
 }
 
-function updateConsole() {
+function updateConsole(fromlinux) {
 	//Removing the forcelinebreak-div will freeze hell and make the dead walk the earth. You want that? No, you don't. So don't fucking remove this.
 	var cursorpos=doGetCaretPosition(document.getElementById("userinputworkaround"));
 	if (window.consolerunning) {
@@ -106,7 +106,7 @@ function updateConsole() {
 		$("#userinput > span").removeClass("mark");
 		$("#userinput > span:last-child").addClass("mark");
 	} else {
-		$("#console_primary_content").html("<div id=forcelinebreak></div>"+window.consolecontent+window.consoleurl+"<div id=forcelinebreak></div><span id=userinput>"+spanify(window.userinput)+"<span>&nbsp;</span></span>");
+		$("#console_primary_content").html("<div id=forcelinebreak></div>"+window.consolecontent+(fromlinux?'':window.consoleurl)+"<div id=forcelinebreak></div><span id=userinput>"+spanify(window.userinput)+"<span>&nbsp;</span></span>");
 		$("#userinput > span").removeClass("mark");
 		$("#userinput > span:nth-child("+(cursorpos+1)+")").addClass("mark");
 	}
@@ -127,11 +127,12 @@ function runCommand(command) {
 	}
 	
 	if (window.registeredcommands.indexOf(cmd)==-1) {
+		window.abort = function(){linux_send("\x03");}
+		linux_send(command+"\n");
 		window.userinput="";
 		window.commandhistory[window.commandhistory.length-1]=command;
 		window.commandhistory.push("");
 		window.currentcommand=window.commandhistory.length - 1;
-		window.consolecontent+=window.consoleurl+command+"<br>"+"Unknown command '"+cmd+"'. Try 'help' to get a list of all available commands.<br>";
 		return;
 	}
 	window.userinput="";
@@ -144,6 +145,7 @@ function runCommand(command) {
 	
 	//RUN THE COMMAND AYY LMAO
 	window[cmd](split);
+	setTimeout(updateConsole, 100);
 }
 
 function print(str) {
